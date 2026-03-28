@@ -1,0 +1,35 @@
+# Euro area potential GDP growth rate (annual %)
+# Source: AMECO database (European Commission, DG ECFIN), Autumn 2025 vintage
+# Variable: OVGDP - Potential gross domestic product at 2015 reference levels
+# Growth rates computed from levels data
+# Series: EA19 (1999-2001), EA20 (2002-2026) for best coverage of current euro area composition
+# Retrieved via DBnomics API (https://db.nomics.world/AMECO/OVGDP) on 2026-03-28
+Year,potential_growth_pct
+1999,2.32
+2000,2.32
+2001,2.22
+2002,1.98
+2003,1.92
+2004,1.90
+2005,1.78
+2006,1.84
+2007,1.85
+2008,1.49
+2009,0.75
+2010,0.64
+2011,0.73
+2012,0.58
+2013,0.61
+2014,0.75
+2015,1.32
+2016,0.98
+2017,1.23
+2018,1.33
+2019,1.34
+2020,1.00
+2021,1.10
+2022,1.42
+2023,1.44
+2024,1.37
+2025,1.31
+2026,1.24
