@@ -18,6 +18,7 @@ import zipfile
 import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import config
 from config import SPF_ZIP_URL, DATA_DIR, RAW_DIR
 
 
@@ -31,6 +32,15 @@ def download_spf(force=False):
     if existing and not force:
         print(f"Already have {len(existing)} CSV files in {RAW_DIR}. Use force=True to re-download.")
         return
+
+    if config.OFFLINE_MODE:
+        print(
+            "OFFLINE_MODE is enabled but no SPF CSVs are present.\n"
+            f"  Download manually from: {SPF_ZIP_URL}\n"
+            f"  Unzip and place the resulting *.csv files in: {RAW_DIR}\n"
+            "Then re-run the pipeline (the download step will detect the local files and skip)."
+        )
+        sys.exit(1)
 
     print(f"Downloading SPF data from {SPF_ZIP_URL} ...")
     resp = requests.get(SPF_ZIP_URL, timeout=120)

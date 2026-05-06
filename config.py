@@ -51,6 +51,19 @@ SPF_ZIP_URL = (
 )
 
 # ============================================================================
+# Offline / firewalled mode
+# ============================================================================
+# Some networks (e.g. corporate intranets) block the ECB and Eurostat data
+# hosts. Set OFFLINE_MODE = True below — or export the environment variable
+# UNCERTAINTY_OFFLINE=1 — to skip every network call. In that mode the
+# pipeline expects the raw inputs to be placed manually under data/. See
+# the "Offline / firewalled environment" section of README.md for the
+# step-by-step procedure (URLs, target paths, expected column names).
+OFFLINE_MODE = os.environ.get("UNCERTAINTY_OFFLINE", "").strip().lower() in (
+    "1", "true", "yes", "on",
+)
+
+# ============================================================================
 # Variables and horizons to process
 # ============================================================================
 VARIABLES = ["inflation", "gdp"]

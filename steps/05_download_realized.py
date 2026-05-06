@@ -20,10 +20,34 @@ import pandas as pd
 import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import config
 from config import REALIZED_DIR
 
 
 ECB_API_BASE = "https://data-api.ecb.europa.eu/service/data"
+
+
+_MANUAL_HINTS = {
+    "inflation": (
+        "Download HICP YoY inflation (series ICP.M.U2.N.000000.4.ANR) from the\n"
+        "  ECB Data Portal: https://data.ecb.europa.eu/data/data-categories/prices-and-costs\n"
+        "  Save as a CSV with columns 'Date,inflation' (Date in YYYY-MM-DD format)."
+    ),
+    "gdp": (
+        "Download Real GDP YoY growth (ECB MNA.Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY,\n"
+        "  or Eurostat NAMQ_10_GDP, geo=EA20, na_item=B1GQ, unit=CLV_PCH_SM, s_adj=SCA).\n"
+        "  Save as a CSV with columns 'Date,gdp_growth' (Date in YYYY-MM-DD format)."
+    ),
+}
+
+
+def _hint_and_skip(series_name, out_path):
+    print(
+        f"OFFLINE_MODE is enabled and {out_path} is missing.\n"
+        f"  {_MANUAL_HINTS[series_name]}\n"
+        f"  Target path: {out_path}\n"
+        f"  Skipping {series_name}; downstream steps that don't need realized data will still run."
+    )
 
 
 def _download_ecb_series(flow, key, start="1990-01"):
@@ -48,6 +72,14 @@ def download_inflation():
     REALIZED_DIR.mkdir(parents=True, exist_ok=True)
     out_path = REALIZED_DIR / "inflation.csv"
 
+    if out_path.exists():
+        print(f"  Using existing local file: {out_path}")
+        return
+
+    if config.OFFLINE_MODE:
+        _hint_and_skip("inflation", out_path)
+        return
+
     df = _download_ecb_series("ICP", "M.U2.N.000000.4.ANR")
 
     # The CSV has TIME_PERIOD and OBS_VALUE columns
@@ -69,6 +101,14 @@ def download_gdp():
     """
     REALIZED_DIR.mkdir(parents=True, exist_ok=True)
     out_path = REALIZED_DIR / "gdp.csv"
+
+    if out_path.exists():
+        print(f"  Using existing local file: {out_path}")
+        return
+
+    if config.OFFLINE_MODE:
+        _hint_and_skip("gdp", out_path)
+        return
 
     try:
         df = _download_ecb_series(

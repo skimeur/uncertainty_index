@@ -194,6 +194,53 @@ python main.py plots         # Step 7: Generate publication-ready figures
 python main.py diagnostics   # Step 8: Variance diagnostics and data-quality checks
 ```
 
+### Offline / firewalled environment
+
+If your network blocks `www.ecb.europa.eu`, `data-api.ecb.europa.eu`, or
+`ec.europa.eu` (typical on corporate intranets), enable offline mode and
+place the inputs manually. Offline mode is controlled by either:
+
+- the environment variable `UNCERTAINTY_OFFLINE=1` (recommended — no edit
+  to `config.py`, no risk of committing a local override), or
+- editing `config.py` and setting `OFFLINE_MODE = True`.
+
+When offline mode is on, no network calls are attempted. Each download
+step looks for local files and either reuses them or prints a manual-
+download hint pointing at the expected path.
+
+**Files to provide manually** (download from another machine, then copy
+into the indicated paths under your project folder):
+
+| Required by | Source URL | Local path |
+|---|---|---|
+| `download` | https://www.ecb.europa.eu/stats/prices/indic/forecast/shared/files/SPF_individual_forecasts.zip | unzip into `data/SPF_individual_forecasts/*.csv` |
+| `realized` (optional) | ECB Data Portal → series `ICP.M.U2.N.000000.4.ANR` (HICP YoY) | `data/realized/inflation.csv` with columns `Date,inflation` |
+| `realized` (optional) | ECB Data Portal → `MNA.Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY` *or* Eurostat `NAMQ_10_GDP` (geo=EA20, na_item=B1GQ, unit=CLV_PCH_SM, s_adj=SCA) | `data/realized/gdp.csv` with columns `Date,gdp_growth` |
+
+The `realized` step is optional: no other step currently consumes those
+files, so the pipeline will run end-to-end without them. Only `download`
+is hard-required.
+
+Typical workflow on a firewalled machine:
+
+```bash
+# Windows PowerShell example
+$env:UNCERTAINTY_OFFLINE = "1"
+# ... copy SPF CSVs into data\SPF_individual_forecasts\ ...
+python main.py panels niu ac merge plots diagnostics
+```
+
+```bash
+# macOS / Linux
+export UNCERTAINTY_OFFLINE=1
+python main.py panels niu ac merge plots diagnostics
+```
+
+If you skip the `download` and `realized` steps explicitly (as above),
+no network access is attempted at all and `UNCERTAINTY_OFFLINE` is not
+strictly needed — but setting it is the safest default in case you
+accidentally include a download step.
+
 ---
 
 ## 6. Pipeline Steps
