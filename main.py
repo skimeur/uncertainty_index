@@ -70,42 +70,42 @@ def _import(module_path):
 
 
 def run_download():
-    mod = _import("code.01_download_data")
+    mod = _import("steps.01_download_data")
     mod.download_spf()
 
 
 def run_realized():
-    mod = _import("code.05_download_realized")
+    mod = _import("steps.05_download_realized")
     mod.download_all()
 
 
 def run_panels():
-    mod = _import("code.02_prepare_panels")
+    mod = _import("steps.02_prepare_panels")
     mod.prepare_all()
 
 
 def run_niu():
-    mod = _import("code.03_compute_niu")
+    mod = _import("steps.03_compute_niu")
     mod.process_all()
 
 
 def run_ac():
-    mod = _import("code.04_compute_ac")
+    mod = _import("steps.04_compute_ac")
     mod.process_all()
 
 
 def run_plots():
-    mod = _import("code.06_plot_results")
+    mod = _import("steps.06_plot_results")
     mod.generate_all()
 
 
 def run_merge():
-    mod = _import("code.07_merge_horizons")
+    mod = _import("steps.07_merge_horizons")
     mod.process_all()
 
 
 def run_diagnostics():
-    mod = _import("code.08_diagnostics")
+    mod = _import("steps.08_diagnostics")
     mod.run_all()
 
 

@@ -218,7 +218,7 @@ uncertainty_index/
 ├── main.py                          # Pipeline orchestrator (run all or individual steps)
 ├── config.py                        # All configurable parameters (edit this file)
 ├── requirements.txt                 # Python dependencies
-├── code/
+├── steps/
 │   ├── __init__.py
 │   ├── 01_download_data.py          # Download + unzip SPF data
 │   ├── 02_prepare_panels.py         # Parse raw CSVs into clean panels

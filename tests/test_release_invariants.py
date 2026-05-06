@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 
 
-merge_horizons = importlib.import_module("code.07_merge_horizons")
-compute_ac = importlib.import_module("code.04_compute_ac")
-prepare_panels = importlib.import_module("code.02_prepare_panels")
+merge_horizons = importlib.import_module("steps.07_merge_horizons")
+compute_ac = importlib.import_module("steps.04_compute_ac")
+prepare_panels = importlib.import_module("steps.02_prepare_panels")
 
 
 class ReleaseInvariantTests(unittest.TestCase):

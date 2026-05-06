@@ -29,7 +29,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
-from code.utils import iqr_scale, get_target
+from steps.utils import iqr_scale, get_target
 
 
 def compute_individual_ac(variable, horizon):

@@ -24,7 +24,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
-from code.utils import (
+from steps.utils import (
     compute_bin_edges, compute_spd_moments, find_percentile,
     bowley_skewness, compute_niu, normalized_entropy,
     informativeness, bins_filled, get_target,

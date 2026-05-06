@@ -31,7 +31,7 @@ import matplotlib.dates as mdates
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
-from code.utils import figure_note
+from steps.utils import figure_note
 
 
 # ============================================================================

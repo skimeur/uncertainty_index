@@ -1,5 +1,5 @@
 """
-Uncertainty Index -- code package.
+Uncertainty Index -- steps package.
 
 Implements the Normalized Uncertainty (NU) and Asymmetry Coherence (AC)
 indicators from ECB Survey of Professional Forecasters data.
