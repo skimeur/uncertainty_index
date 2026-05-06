@@ -121,19 +121,30 @@ STEPS = {
 }
 
 
-def main():
-    args = sys.argv[1:]
+def main(args=None):
+    raw_args = sys.argv[1:] if args is None else list(args)
 
-    if args:
-        for step_name in args:
-            if step_name in STEPS:
-                print(f"\n{'='*60}")
-                print(f"  Step: {step_name}")
-                print(f"{'='*60}")
-                STEPS[step_name]()
-            else:
-                print(f"Unknown step: {step_name}. Available: {list(STEPS.keys())}")
-                sys.exit(1)
+    # Drop arguments injected by IPython/Spyder/Jupyter kernels
+    # (e.g. --ip=127.0.0.1, -f /path/to/kernel-xxx.json) so they are
+    # not interpreted as pipeline steps.
+    steps_to_run = [a for a in raw_args if a in STEPS]
+    invalid = [
+        a for a in raw_args
+        if a not in STEPS
+        and not a.startswith("-")
+        and not a.endswith(".json")
+    ]
+
+    if invalid:
+        print(f"Unknown step(s): {invalid}. Available: {list(STEPS.keys())}")
+        sys.exit(1)
+
+    if steps_to_run:
+        for step_name in steps_to_run:
+            print(f"\n{'='*60}")
+            print(f"  Step: {step_name}")
+            print(f"{'='*60}")
+            STEPS[step_name]()
     else:
         # Full pipeline
         print("=" * 60)
