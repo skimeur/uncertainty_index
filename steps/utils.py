@@ -72,6 +72,69 @@ def compute_spd_moments(probs_pct, edges):
     return float(mu), float(var)
 
 
+def cumulative_proba(probs_pct, edges, threshold, direction="lower"):
+    """
+    Cumulative probability of a binned SPD using uniform-within-bin
+    interpolation:
+        P(X <= threshold)  (direction="lower")
+        P(X >= threshold)  (direction="upper")
+
+    Parameters
+    ----------
+    probs_pct : array-like
+        Bin probabilities (any positive scale; renormalized internally).
+    edges : list of (lo, hi) tuples
+        Concrete bin edges aligned with ``probs_pct``.
+    threshold : float
+        Cutoff value in the variable's units (e.g. % for inflation).
+    direction : {"lower", "upper"}
+        Whether to accumulate below or above the threshold.
+
+    Returns
+    -------
+    float
+        Probability in **percent** units (0-100), or NaN if all-zero.
+
+    Notes
+    -----
+    Linear in the probability vector: for a fixed threshold, the mean
+    across forecasters of ``cumulative_proba(p_i, ...)`` equals
+    ``cumulative_proba(mean_i(p_i), ...)``.  The pipeline relies on this
+    identity to cross-check the cross-sectional mean against the value
+    computed directly on the average SPD.
+    """
+    probs = np.asarray(probs_pct, dtype=float)
+    probs = np.where(np.isfinite(probs), probs, 0.0)
+    total = probs.sum()
+    if total <= 0:
+        return np.nan
+    pvec = probs / total
+
+    cum = 0.0
+    for p, (lo, hi) in zip(pvec, edges):
+        if hi <= lo:
+            continue
+        if direction == "lower":
+            if hi <= threshold:
+                cum += p
+            elif lo >= threshold:
+                continue
+            else:
+                cum += p * (threshold - lo) / (hi - lo)
+        elif direction == "upper":
+            if lo >= threshold:
+                cum += p
+            elif hi <= threshold:
+                continue
+            else:
+                cum += p * (hi - threshold) / (hi - lo)
+        else:
+            raise ValueError(
+                f"direction must be 'lower' or 'upper', got {direction!r}"
+            )
+    return cum * 100.0
+
+
 def find_percentile(percentile, edges, cumulative_probs):
     """
     Linearly interpolate a percentile from binned CDF.

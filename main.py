@@ -46,6 +46,9 @@ Pipeline steps
     niu         Compute Normalized Uncertainty at individual and aggregate level
     ac          Compute Asymmetry Coherence at individual and aggregate level
     merge       Merge horizons into a single NU index per variable
+    decomposition Decompose Var(avg SPD) into individual uncertainty + disagreement
+    tail_proba  Cumulative tail probabilities P(X<=low) and P(X>=high)
+                and an AC-vs-tails comparison figure
     plots       Generate publication-ready figures
     diagnostics Run variance diagnostics and merged publication plots
 
@@ -109,6 +112,16 @@ def run_diagnostics():
     mod.run_all()
 
 
+def run_decomposition():
+    mod = _import("steps.09_decomposition")
+    mod.process_all()
+
+
+def run_tail_proba():
+    mod = _import("steps.10_tail_proba")
+    mod.process_all()
+
+
 STEPS = {
     "download": run_download,
     "realized": run_realized,
@@ -116,6 +129,8 @@ STEPS = {
     "niu": run_niu,
     "ac": run_ac,
     "merge": run_merge,
+    "decomposition": run_decomposition,
+    "tail_proba": run_tail_proba,
     "plots": run_plots,
     "diagnostics": run_diagnostics,
 }

@@ -148,6 +148,73 @@ NIU_merged = 0.50 * NIU(1Y) + 0.30 * NIU(2Y) + 0.20 * NIU(5Y)
 
 This weights the near-term horizon most heavily while retaining information from longer horizons. If one horizon is unavailable on a given date, the remaining weights are renormalized over the available horizons.
 
+### Variance Decomposition: Individual Uncertainty vs Disagreement
+
+For each `(variable, horizon)`, the pipeline materializes the textbook variance identity used in Vansteenberghe (2026):
+
+```
+Var(average SPD)_t  =  E_i[ Var(SPD_{i,t}) ]   +   Var_i[ E(SPD_{i,t}) ]
+                       --------------------        ----------------------
+                       Average individual          Disagreement
+                       SPD variance                (variance of point means)
+```
+
+- **`var_of_avg_spd`** -- variance of the cross-sectional average SPD (built by averaging individual bin probabilities, then computing variance on the active bin regime).
+- **`avg_indiv_var`** -- mean across forecasters of each forecaster's own SPD variance.
+- **`disagreement`** -- population variance (`ddof=0`) of forecasters' SPD means.
+- **`disagreement_theo`** -- residual that closes the identity exactly: `var_of_avg_spd − avg_indiv_var`. By construction the stacked components sum to the LHS.
+- **`gap`** -- `var_of_avg_spd − (avg_indiv_var + disagreement)`; typically `1e-16` (machine epsilon).
+
+Outputs per `(variable, horizon)`:
+
+| File | Description |
+|------|-------------|
+| `data/results/decomposition_{var}_{hor}.csv` | All four series + diagnostics, indexed by survey date. |
+| `figures/decomposition_{var}_{hor}.png` | Stacked area: avg individual SPD variance + disagreement (Var of SPD means), with `var_of_avg_spd` overlaid. |
+| `figures/decomposition_theo_{var}_{hor}.png` | Same stack but using `disagreement_theo`, so the stack sums exactly to the LHS line. |
+
+### Cumulative Tail Probabilities
+
+A complementary, distribution-free asymmetry signal: for each forecaster and each survey round, compute
+
+```
+P_low_t  = P(X <= low_threshold_t)
+P_high_t = P(X >= high_threshold_t)
+```
+
+Thresholds are configured in `config.TAIL_THRESHOLDS` with one of two modes:
+
+| Variable | Mode | Threshold rule | Rationale |
+|----------|------|----------------|-----------|
+| Inflation | `absolute` | `low = 1.0%`, `high = 3.0%` | Symmetric +/- 1pp around the fixed ECB 2% target |
+| Core      | `absolute` | `low = 1.0%`, `high = 3.0%` | Same as headline inflation |
+| GDP       | `target_relative` | `low = mu*_t - 1pp`, `high = mu*_t + 1pp` | Time-varying around the same target the AC step uses (`utils.get_target`).  Anchors both AC and dP on the same notion of "normal" growth. |
+
+In `target_relative` mode the cutoffs drift with `mu*_t`: for GDP they move from `(1.3%, 3.3%)` in 1999 to `(0%, 2%)` in 2026 (linear interpolation). Per-date thresholds are recorded as `low_threshold` / `high_threshold` columns in both individual and aggregate CSVs.
+
+To switch a variable from one mode to the other, just edit the entry in `config.TAIL_THRESHOLDS` -- e.g. change `"inflation"` from `{"mode": "absolute", ...}` to `{"mode": "target_relative", "low_offset": -1.0, "high_offset": 1.0}`.
+
+Bin probabilities are interpolated linearly within each bin (uniform-within-bin assumption). Because the binned cumulative operator is linear, the cross-sectional mean of individual `P_low_i` exactly equals `P_low` computed on the cross-sectional average SPD; the pipeline saves both columns for verification (`*_mean` vs `*_avg_spd`).
+
+A directional asymmetry is derived from the two tails:
+
+```
+dP_t = P_high_t - P_low_t
+```
+
+`dP` shares AC's sign convention (positive when upside risk dominates), making the two signals directly comparable. Like the individual tails, `dP` is computed per forecaster and aggregated as `mean +/- 1 SE`. By linearity it also coincides with `dP` computed on the average SPD.
+
+Outputs per `(variable, horizon)`:
+
+| File | Description |
+|------|-------------|
+| `data/results/individual_{var}_{hor}_tailproba.csv` | Per-forecaster `P_low`, `P_high`, `dP`. |
+| `data/results/aggregate_{var}_{hor}_tailproba.csv` | `mean +/- 1 SE` bands for `P_low`, `P_high`, `dP`, plus `*_avg_spd` columns and the active thresholds. |
+| `figures/tailproba_{var}_{hor}.png` | Both tails on one axis with confidence bands; thin dashed lines show the avg-SPD probabilities as a sanity check. |
+| `figures/ac_vs_tailproba_{var}_{hor}.png` | 2x1 stacked comparison: AC (top, with band) vs. `P_low` / `P_high` (bottom). Useful to spot regimes where AC and the cumulative tails disagree on the direction of risk. |
+| `figures/delta_p_{var}_{hor}.png` | Stand-alone time series of `dP = P_high - P_low` with `mean +/- 1 SE` band and avg-SPD overlay. |
+| `figures/ac_vs_dp_{var}_{hor}.png` | Twin-axis overlay of AC (left axis) and `dP` (right axis), with both zero lines aligned. Survey dates where AC and `dP` disagree on sign (with both meaningfully non-zero) are highlighted with a faint vertical grey band; the count is reported in the title. |
+
 ---
 
 ## 3. Data Source
@@ -184,14 +251,16 @@ python main.py
 This runs the full pipeline. To run individual steps:
 
 ```bash
-python main.py download      # Step 1: Download SPF data from ECB
-python main.py realized      # Step 2: Download realized HICP and GDP series via API
-python main.py panels        # Step 3: Parse raw CSVs into clean panels
-python main.py niu           # Step 4: Compute Normalized Uncertainty
-python main.py ac            # Step 5: Compute Asymmetry Coherence
-python main.py merge         # Step 6: Merge horizons into summary NIU index
-python main.py plots         # Step 7: Generate publication-ready figures
-python main.py diagnostics   # Step 8: Variance diagnostics and data-quality checks
+python main.py download        # Step 1: Download SPF data from ECB
+python main.py realized        # Step 2: Download realized HICP and GDP series via API
+python main.py panels          # Step 3: Parse raw CSVs into clean panels
+python main.py niu             # Step 4: Compute Normalized Uncertainty
+python main.py ac              # Step 5: Compute Asymmetry Coherence
+python main.py merge           # Step 6: Merge horizons into summary NIU index
+python main.py decomposition   # Step 7: Decompose Var(avg SPD) = Avg(Var_i) + Disagreement
+python main.py tail_proba      # Step 8: Cumulative tail probabilities + AC-vs-tails comparison
+python main.py plots           # Step 9: Generate publication-ready figures
+python main.py diagnostics     # Step 10: Variance diagnostics and data-quality checks
 ```
 
 ### Offline / firewalled environment
@@ -253,6 +322,8 @@ accidentally include a download step.
 | `niu` | `03_compute_niu.py` | Computes individual SPD moments (mean, variance, quantiles, Bowley skewness, entropy) and Normalized Uncertainty for each forecaster-round. |
 | `ac` | `04_compute_ac.py` | Computes individual forecaster AC scores and aggregates them into the cross-sectional mean AC series. |
 | `merge` | `07_merge_horizons.py` | Produces the cross-horizon weighted-average NIU index (50/30/20 weights). |
+| `decomposition` | `09_decomposition.py` | Decomposes the variance of the cross-sectional average SPD into average individual SPD variance + cross-forecaster disagreement, per variable x horizon. |
+| `tail_proba` | `10_tail_proba.py` | Cumulative tail probabilities `P(X <= low)` and `P(X >= high)` per variable x horizon, plus an AC-vs-tails comparison figure. |
 | `plots` | `06_plot_results.py` | Generates publication-ready time-series figures with confidence bands. |
 | `diagnostics` | `08_diagnostics.py` | Runs variance diagnostics and data-quality checks (see Section 8). |
 
@@ -275,6 +346,8 @@ uncertainty_index/
 │   ├── 06_plot_results.py           # Publication-ready figures
 │   ├── 07_merge_horizons.py         # Cross-horizon weighted average
 │   ├── 08_diagnostics.py            # Variance diagnostics and data-quality checks
+│   ├── 09_decomposition.py          # Variance decomposition (disagreement vs individual uncertainty)
+│   ├── 10_tail_proba.py             # Cumulative tail probabilities + AC-vs-tails comparison
 │   └── utils.py                     # Shared computation functions (SPD moments, quantiles)
 ├── data/
 │   ├── SPF_individual_forecasts/    # Raw quarterly CSVs from ECB
@@ -312,6 +385,7 @@ All parameters are centralized in `config.py`. Key settings:
 | `NIU_P` | `0.5` | Exponent in NU denominator (`sqrt` by default). |
 | `BOWLEY_SMOOTHING_WINDOW` | `2` | Rolling window for individual Bowley skewness. |
 | `BIN_REGIME_CUTOFF` | `"2024-09-01"` | Date when ECB changed HICP bin definitions. |
+| `TAIL_THRESHOLDS` | `{inflation: abs 1%/3%, gdp: target +/- 1pp}` | Mode-driven cutoffs for the cumulative tail probabilities (see Section 2). |
 | `VARIABLES` | `["inflation", "gdp"]` | Variables to process. |
 | `HORIZONS` | `["1Y", "2Y", "5Y"]` | Forecast horizons to process. |
 | `FIGURE_DPI` | `300` | Resolution for saved figures. |

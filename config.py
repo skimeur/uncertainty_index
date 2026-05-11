@@ -112,6 +112,37 @@ BOWLEY_SMOOTHING_WINDOW = 2   # Rolling window for Bowley skewness (per forecast
 LOESS_FRAC = 0.3              # Bandwidth for LOESS (sigma on realized series)
 
 # ============================================================================
+# Tail-probability thresholds for the cumulative-probability indicator.
+#
+#   P_low_t  = P(X <= low)   -- cumulative probability of a downside scenario
+#   P_high_t = P(X >= high)  -- cumulative probability of an upside scenario
+#
+# Each entry declares a "mode":
+#
+#   mode = "absolute"
+#       Fixed thresholds.  Keys: "low", "high" (in the variable's units).
+#       Used for inflation/core: the ECB 2% target is fixed, so absolute
+#       1% and 3% bracket it symmetrically by +/- 1pp.
+#
+#   mode = "target_relative"
+#       Time-varying thresholds anchored on the same target the AC step
+#       uses (see ``steps/utils.py::get_target``).  Keys: "low_offset",
+#       "high_offset" (in pp).  Used for GDP: with the linear potential-
+#       growth interpolation, ``mu*_t`` drifts from 2.3% (1999) to 1.0%
+#       (2026), and the thresholds drift with it.  This isolates "below
+#       potential by 1pp" vs "above potential by 1pp" and keeps dP and
+#       AC anchored on the same notion of "normal" growth.
+#
+# To switch a variable from one mode to the other, just edit the entry
+# in place -- the pipeline reads ``mode`` and the matching keys.
+# ============================================================================
+TAIL_THRESHOLDS = {
+    "inflation": {"mode": "absolute", "low": 1.0, "high": 3.0},
+    "core":      {"mode": "absolute", "low": 1.0, "high": 3.0},
+    "gdp":       {"mode": "target_relative", "low_offset": -1.0, "high_offset": 1.0},
+}
+
+# ============================================================================
 # Bin regime cutoff: ECB changed HICP bin definitions in 2024Q4
 # ============================================================================
 BIN_REGIME_CUTOFF = "2024-09-01"
